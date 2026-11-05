@@ -36,6 +36,7 @@ class Mesh {
         std::vector<Texture> textures;
 
         glm::mat4 model = glm::mat4(1.0f);
+        unsigned int modelUniform, viewUniform;
 
         Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
         void Draw(unsigned int shaderProgram);
@@ -49,6 +50,7 @@ class Mesh {
 class Model {
     public:
         glm::mat4 model = glm::mat4(1.0f);
+        unsigned int modelUniform, viewUniform;
         
         Model(char *path) {
             loadModel(path);
@@ -59,9 +61,10 @@ class Model {
         void ActivateShader();
 
     private:
-        void loadModel(std::string path);
         std::string directory;
         std::vector<Mesh> meshes;
+
+        void loadModel(std::string path);
         void processNode(aiNode *node, const aiScene *scene);
         Mesh processMesh(aiMesh *mesh, const aiScene *scene);
         std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName);

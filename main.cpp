@@ -11,6 +11,8 @@
 
 int WINDOW_W = 1600, WINDOW_H = 900;
 
+
+// vertices and indices for light cube
 std::vector<Vertex> vertices = {
     // Front face (+Z)
     {{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 0.0f}},
@@ -74,6 +76,7 @@ std::vector<unsigned int> indices = {
     22, 23, 20
 };
 
+// callback for screen size change
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     WINDOW_W = width;
@@ -82,6 +85,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+// some mouse callbacks
 bool mouse_look_enabled = false;
 bool first_mouse = true;
 float lastX = WINDOW_W/2, lastY = WINDOW_H/2;
@@ -131,6 +135,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
+// helper function to load shader file and create shader
 unsigned int createShaderFromFile(char *fname, GLenum shad_type)
 {
     unsigned int shad = glCreateShader(shad_type);
@@ -166,6 +171,7 @@ int main()
         printf("Error in creating window\n");
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
@@ -179,20 +185,23 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    // camera variables
     glm::vec3 camPos = glm::vec3(0.0f, 0.0f, 5.0f);
     glm::vec3 camTarget = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 camUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glm::mat4 view = glm::mat4(1.0f), proj = glm::mat4(1.0f);
+    // calculating projection
     proj = glm::perspective(glm::radians(45.0f), (float)WINDOW_W/(float)WINDOW_H, 0.1f, 100.0f);
 
-    unsigned int modelUniform, viewUniform;
-
+    // loading shaders
     unsigned int vShad = createShaderFromFile((char *)"shaders/vertex.glsl", GL_VERTEX_SHADER);
     unsigned int fShad = createShaderFromFile((char *)"shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     unsigned int shadProg = glCreateProgram(), lightShadProg = glCreateProgram();
@@ -209,13 +218,18 @@ int main()
     L.model = glm::translate(L.model, lightPos);
     glUniformMatrix4fv(glGetUniformLocation(lightShadProg, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform1i(glGetUniformLocation(lightShadProg, "isLight"), GL_TRUE);
+    L.modelUniform = glGetUniformLocation(lightShadProg, "model");
+    L.viewUniform = glGetUniformLocation(lightShadProg, "view");
 
     // creating the model
     glUseProgram(shadProg);
-    Model M = Model((char *)"MikuFigure/MikuFigure.dae");
+    Model M = Model((char *)"test_models/AnnaFigure/Anna.dae");
     glUniformMatrix4fv(glGetUniformLocation(shadProg, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform3fv(glGetUniformLocation(shadProg, "lightPos"), 1, glm::value_ptr(lightPos));
+    M.modelUniform = glGetUniformLocation(shadProg, "model");
+    M.viewUniform = glGetUniformLocation(shadProg, "view");
 
+    // center and scale the model to viewable scale
     M.model = glm::scale(M.model, glm::vec3(M.ComputeScale(2.0f)));
     M.model = glm::translate(M.model, -M.ComputeCentroid());
 
@@ -223,17 +237,18 @@ int main()
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(window))
     {
-        proj = glm::perspective(glm::radians(45.0f), (float)WINDOW_W/(float)WINDOW_H, 0.1f, 100.0f);
-
+        // get elapsed time
         curTime = glfwGetTime();
         deltaTime = curTime - lastTime;
         lastTime = curTime;
 
+        // do camera stuff
         camTarget.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         camTarget.y = sin(glm::radians(pitch));
         camTarget.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         camTarget = glm::normalize(camTarget);
-
+        
+        // get user input
         float camSpeed = 1.5f * deltaTime;
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         {
@@ -263,24 +278,21 @@ int main()
         {
             camPos += glm::normalize(glm::cross(camTarget, glm::normalize(glm::cross(camTarget, camUp)))) * camSpeed;
         }
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         view = glm::lookAt(
             camPos, camPos + camTarget, camUp
         );
 
+        // draw model
         glUseProgram(shadProg);
-        modelUniform = glGetUniformLocation(shadProg, "model");
-        viewUniform = glGetUniformLocation(shadProg, "view");
-        glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(M.model));
-        glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(M.modelUniform, 1, GL_FALSE, glm::value_ptr(M.model));
+        glUniformMatrix4fv(M.viewUniform, 1, GL_FALSE, glm::value_ptr(view));
         M.Draw(shadProg);
-
+        
+        // draw light
         glUseProgram(lightShadProg);
-        modelUniform = glGetUniformLocation(lightShadProg, "model");
-        viewUniform = glGetUniformLocation(lightShadProg, "view");
-        glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(L.model));
-        glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(L.modelUniform, 1, GL_FALSE, glm::value_ptr(L.model));
+        glUniformMatrix4fv(L.viewUniform, 1, GL_FALSE, glm::value_ptr(view));
         L.Draw(lightShadProg);
 
         glfwSwapBuffers(window);
