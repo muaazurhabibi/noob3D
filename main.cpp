@@ -9,7 +9,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-int WINDOW_W = 1280, WINDOW_H = 720;
+int WINDOW_W = 1600, WINDOW_H = 900;
 
 std::vector<Vertex> vertices = {
     // Front face (+Z)
@@ -212,12 +212,12 @@ int main()
 
     // creating the model
     glUseProgram(shadProg);
-    Model M = Model((char *)"test_model/source/model.obj");
+    Model M = Model((char *)"MikuFigure/MikuFigure.dae");
     glUniformMatrix4fv(glGetUniformLocation(shadProg, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
     glUniform3fv(glGetUniformLocation(shadProg, "lightPos"), 1, glm::value_ptr(lightPos));
 
-    M.model = glm::scale(M.model, glm::vec3(M.computeScale(2.0f)));
-    M.model = glm::translate(M.model, -M.computeCentroid());
+    M.model = glm::scale(M.model, glm::vec3(M.ComputeScale(2.0f)));
+    M.model = glm::translate(M.model, -M.ComputeCentroid());
 
     float curTime = 0, lastTime = 0, deltaTime = 0;
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

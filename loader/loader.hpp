@@ -39,6 +39,7 @@ class Mesh {
 
         Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
         void Draw(unsigned int shaderProgram);
+        void ActivateShader();
 
     private:
         unsigned int VAO, VBO, EBO;
@@ -47,14 +48,15 @@ class Mesh {
 
 class Model {
     public:
+        glm::mat4 model = glm::mat4(1.0f);
+        
         Model(char *path) {
             loadModel(path);
         }
         void Draw(unsigned int shaderProgram);
-        glm::vec3 computeCentroid();
-        float computeScale(float targetSize);
-
-        glm::mat4 model = glm::mat4(1.0f);
+        glm::vec3 ComputeCentroid();
+        float ComputeScale(float targetSize);
+        void ActivateShader();
 
     private:
         void loadModel(std::string path);

@@ -30,7 +30,9 @@ void main() {
         vec3 diffuse = diff * vec3(1.0f, 1.0f, 1.0f);
 
         vec3 texColor = texture(material.texture_diffuse1, texCoord).rgb;
-        vec3 result = (ambient + diffuse) * vec3(0.5f, 0.5f, 0.5f);
+        vec3 lighting = ambient + diffuse;
+        //vec3 result = lighting * vec3(0.5f, 0.5f, 0.5f);
+        vec3 result = lighting * texColor;
 
         FragColor = vec4(result, 1.0);
         //FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);

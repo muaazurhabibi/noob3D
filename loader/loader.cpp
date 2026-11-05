@@ -207,7 +207,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
     return Mesh(vertices, indices, textures);
 }
 
-glm::vec3 Model::computeCentroid()
+glm::vec3 Model::ComputeCentroid()
 {
     glm::vec3 minB(FLT_MAX), maxB(-FLT_MAX);
     for (auto &mesh : meshes)
@@ -220,7 +220,7 @@ glm::vec3 Model::computeCentroid()
 }
 
 
-float Model::computeScale(float targetSize)
+float Model::ComputeScale(float targetSize)
 {
     glm::vec3 minB(FLT_MAX), maxB(-FLT_MAX);
     for (auto &mesh : meshes)
