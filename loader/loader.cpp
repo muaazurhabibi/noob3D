@@ -207,6 +207,60 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
     return Mesh(vertices, indices, textures);
 }
 
+void Model::setVertexBones(Vertex *vertex, int boneID, float weight)
+{
+    for (size_t i = 0; i < MAX_BONE_INFLUENCES; i++)
+    {
+        if (vertex->m_BoneIDS[i] < 0)
+        {
+            vertex->m_BoneWeights[i] = weight;
+            vertex->m_BoneIDS[i] = boneID;
+            break;
+        }
+    }
+}
+
+void Model::defaultVertexBones(Vertex *v)
+{
+    for (size_t i = 0; i < MAX_BONE_INFLUENCES; i++)
+    {
+        v->m_BoneIDS[i] = -1;
+        v->m_BoneWeights[i] = 0.0f;
+    }
+}
+
+void Model::extractVerticesBoneWeight(std::vector<Vertex> *vertices, aiMesh *mesh, const aiScene *scene)
+{
+    for (size_t i = 0; i < mesh->mNumBones; ++i)
+    {
+        int boneID = -1;
+        std::string boneName = mesh->mBones[i]->mName.C_Str();
+        
+        if (BoneInfoMap.find(boneName) == BoneInfoMap.end())
+        {
+            BoneInfo newBI;
+            newBI.id = nBones;
+            newBI.offset = glm::transpose(glm::make_mat4(&mesh->mBones[i]->mOffsetMatrix.a1));
+            BoneInfoMap[boneName] = newBI;
+            boneID = nBones++;
+        } else {
+            boneID = BoneInfoMap[boneName].id;
+        }
+
+        assert(boneID != -1);
+        auto weights = mesh->mBones[i]->mWeights;
+        int numWeights = mesh->mBones[i]->mNumWeights;
+
+        for (size_t j = 0; j < numWeights; ++j)
+        {
+            int vID = weights[j].mVertexId;
+            float weight = weights[j].mWeight;
+            assert(vID <= vertices->size());
+            
+        }
+    }
+}
+
 glm::vec3 Model::ComputeCentroid()
 {
     glm::vec3 minB(FLT_MAX), maxB(-FLT_MAX);
