@@ -2,15 +2,34 @@
 #include <GLFW/glfw3.h>
 #include <cstdio>
 
+#define MAX_VERTEX_BUFFER 512 * 1024
+#define MAX_ELEMENT_BUFFER 128 * 1024
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "loader/loader.hpp"
+
+// Nuklear configuration
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+
+// Core Nuklear implementation
+#define NK_IMPLEMENTATION
+#include "nuklear/nuklear.h"
+
+// GLFW + OpenGL implementation
+#define NK_GLFW_GL3_IMPLEMENTATION
+#include "nuklear/nuklear_glfw_gl3.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
 int WINDOW_W = 1600, WINDOW_H = 900;
-
 
 // vertices and indices for light cube
 std::vector<Vertex> vertices = {
@@ -153,10 +172,41 @@ unsigned int createShaderFromFile(char *fname, GLenum shad_type)
     return shad;
 }
 
+// simple function to render gui
+void RenderUI(struct nk_context *ctx)
+{
+    if (nk_begin(ctx, "noob3D",
+        nk_rect(50, 50, 300, 200),
+        NK_WINDOW_BORDER |
+        NK_WINDOW_MOVABLE |
+        NK_WINDOW_SCALABLE |
+        NK_WINDOW_TITLE))
+    {
+        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_label(ctx, "Hello Nuklear!",
+                    NK_TEXT_LEFT);
+
+        if (nk_button_label(ctx, "Click Me"))
+        {
+            
+        }
+
+        nk_layout_row_dynamic(ctx, 30, 1);
+
+        static int value = 50;
+
+        nk_property_int(ctx, "Value:",
+            0, &value, 100, 1, 1);
+    }
+
+    nk_end(ctx);
+}
+
 int main()
 {
-    printf("S3DL Verion Alpha\n");
+    printf("noob3D Verion Alpha\n");
 
+    // opengl init
     if (!glfwInit())
     {
         printf("Error initializing GLFW\n");
@@ -178,7 +228,16 @@ int main()
     {
         printf("Failed to initiaze GLEW\n");
     }
-    //glViewport(0, 0, WINDOW_W, WINDOW_H);
+
+    // nuklear init
+    struct nk_context *nk_ctx;
+    struct nk_glfw glfw = {0};
+    struct nk_font_atlas *atlas;
+    nk_ctx = nk_glfw3_init(&glfw, window, NK_GLFW3_INSTALL_CALLBACKS);
+    nk_glfw3_font_stash_begin(&glfw, &atlas);
+    nk_glfw3_font_stash_end(&glfw);
+
+    // setting some settings
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     framebufferSizeCallback(window, width, height);
@@ -237,6 +296,14 @@ int main()
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(window))
     {
+        // make new nuklear frame
+        nk_glfw3_new_frame(&glfw);
+        // why doesnt nuklear do this on its own
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_BLEND);
+        glDisable(GL_SCISSOR_TEST);
+
         // get elapsed time
         curTime = glfwGetTime();
         deltaTime = curTime - lastTime;
@@ -294,6 +361,10 @@ int main()
         glUniformMatrix4fv(L.modelUniform, 1, GL_FALSE, glm::value_ptr(L.model));
         glUniformMatrix4fv(L.viewUniform, 1, GL_FALSE, glm::value_ptr(view));
         L.Draw(lightShadProg);
+
+        // render the ui
+        RenderUI(nk_ctx);
+        nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
